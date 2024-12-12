@@ -5,17 +5,41 @@
       <div
         class="dy-room-box"
         :class="{
-          error: rnFlag
-        }">
+          error: rnFlag,
+        }"
+      >
         <div class="dy-room-tag">房间号</div>
-        <input v-model="roomNum" type="text" class="dy-room-input" placeholder="请输入12位房间号" />
+        <input
+          v-model="roomNum"
+          type="text"
+          class="dy-room-input"
+          placeholder="请输入12位房间号"
+        />
         <button class="dy-room-btn" @click="gotoConnect">连接</button>
       </div>
       <div class="dy-title">转发信息</div>
       <div class="dy-room-box">
         <div class="dy-room-tag">ws地址</div>
-        <input v-model="relayWs" type="text" class="dy-room-input" placeholder="请输入ws/wss协议链接" />
+        <input
+          v-model="relayWs"
+          type="text"
+          class="dy-room-input"
+          placeholder="请输入ws/wss协议链接"
+        />
         <button class="dy-room-btn" @click="relay">转发</button>
+      </div>
+      <div class="dy-title">我的世界服务器信息</div>
+      <div
+        class="dy-room-box"
+        :class="{
+          error: rnFlag,
+        }"
+      >
+        <div class="dy-room-tag">服务器</div>
+        <select class="dy-room-input" v-model="serveruuid">
+          <option selected value="b459d4784a484ab5b1b20aa3205859b9">原版</option>
+          <option value="80f06cf9e3004923b6adbb4252d60760">Better</option>
+        </select>
       </div>
       <div class="dy-title">
         <span>房间信息</span>
@@ -24,9 +48,9 @@
           class="state"
           :class="{
             success: connectCode === 200,
-            fail: connectCode === 400
+            fail: connectCode === 400,
           }"
-          >{{ connectCode === 200 ? '连接成功' : '连接失败' }}</span
+          >{{ connectCode === 200 ? "连接成功" : "连接失败" }}</span
         >
       </div>
       <div class="dy-room-info" v-if="connectCode !== 100">
@@ -56,26 +80,30 @@
 </template>
 
 <script setup lang="ts">
-import { DyClient, handleMessage } from '../utils/client';
-import { getRoomInfoApi } from '@/api/commonApi';
-import { ref, inject, onMounted, type Ref } from 'vue';
+import { DyClient, handleMessage } from "../utils/client";
+import { notification_minecraft } from "../utils/notification";
+import { getRoomInfoApi } from "@/api/commonApi";
+import { ref, inject, onMounted, type Ref } from "vue";
 
 // 房间号
 const roomNum = ref<string | null>(null);
 
-const relayWs = ref<string>('');
+// Server UUID
+const serveruuid = ref<string | null>(null);
+
+const relayWs = ref<string>("");
 // 弹幕列表
-const chatList = inject<Mess[]>('chatList');
+const chatList = inject<Mess[]>("chatList");
 // 点赞送礼榜
-const rankList = inject<RankItem[]>('rankList');
+const rankList = inject<RankItem[]>("rankList");
 
 // 连接状态
 const connectCode = ref<number>(100);
-const roomAvatar = ref<string>('');
+const roomAvatar = ref<string>("");
 const roomTitle = ref<string | null>(null);
 
-const isStopScroll = inject<Ref<boolean>>('isStopScroll');
-const setIsStopScroll = inject<(value: boolean) => void>('setIsStopScroll');
+const isStopScroll = inject<Ref<boolean>>("isStopScroll");
+const setIsStopScroll = inject<(value: boolean) => void>("setIsStopScroll");
 
 const rnFlag = ref(false);
 /**
@@ -95,19 +123,26 @@ const followCount = ref(0);
  */
 const totalUserCount = ref(0);
 
+var timerId;
+
 // 传送的socket
 let relaySocket: any;
 // 消息列表DOM
 let messListDom: HTMLElement | null;
 
 onMounted(() => {
-  messListDom = document.getElementById('mess-list');
+  messListDom = document.getElementById("mess-list");
+  roomNum.value = "712098963058";
 });
 
 /**
  * 连接直播间
  */
 function gotoConnect() {
+  // clearTimeout(timerId);
+  // chatList.splice(0, chatList.length);
+  // console.log(chatList);
+
   if (!roomNum.value) {
     rnFlag.value = true;
     return;
@@ -117,8 +152,8 @@ function gotoConnect() {
     return;
   }
   rnFlag.value = false;
-  let n = window.open(`https://live.douyin.com/${roomNum.value}`, '_blank');
-  setTimeout(() => {
+  let n = window.open(`https://live.douyin.com/${roomNum.value}`, "_blank");
+  timerId = setTimeout(() => {
     n?.close();
     roomNum.value &&
       getRoomInfoApi(roomNum.value)
@@ -152,7 +187,7 @@ function relay() {
  * @param uniqueId
  */
 function connection(roomId: string, uniqueId: string) {
-  let sign = window.getSign(roomId, uniqueId)['X-Bogus'];
+  let sign = window.getSign(roomId, uniqueId)["X-Bogus"];
   let now = Date.now();
   let wsUrl = `wss://webcast3-ws-web-hl.douyin.com/webcast/im/push/v2/?app_name=douyin_web&version_code=180800&webcast_sdk_version=1.3.0&update_version_code=1.3.0&compress=gzip&internal_ext=internal_src:dim|wss_push_room_id:${roomId}|wss_push_did:${uniqueId}|fetch_time:${now}|seq:1|wss_info:0-${now}-0-0&cursor=t-${now}_r-1_d-1_u-1_h-1&host=https://live.douyin.com&aid=6383&live_id=1&did_rule=3&debug=false&maxCacheMessageNumber=20&endpoint=live_pc&support_wrds=1&im_path=/webcast/im/fetch/&user_unique_id=${uniqueId}&device_platform=web&cookie_enabled=true&screen_width=1920&screen_height=1080&browser_language=zh-CN&browser_platform=Win32&browser_name=Mozilla&browser_version=5.0%20(Windows%20NT%2010.0;%20Win64;%20x64)%20AppleWebKit/537.36%20(KHTML,%20like%20Gecko)%20Chrome/111.0.0.0%20Safari/537.36%20Edg/111.0.1661.62&browser_online=true&tz_name=Asia/Shanghai&identity=audience&room_id=${roomId}&heartbeatDuration=0&signature=${sign}`;
   // 服务地址 发送
@@ -162,6 +197,7 @@ function connection(roomId: string, uniqueId: string) {
     if (message) {
       let m = handleMessage(message);
       handleChat(m);
+      notification_minecraft(m, serveruuid.value);
       renewPos();
       relayMess(m);
     }
@@ -182,22 +218,22 @@ function connection(roomId: string, uniqueId: string) {
 function handleChat(data: Mess) {
   let type = data.type;
   switch (type) {
-    case 'chat':
+    case "chat":
       chatList!.push(data);
       break;
-    case 'member':
+    case "member":
       memberCount.value = data.memberCount;
       break;
-    case 'like':
+    case "like":
       likeCount.value = data.likeCount;
       break;
-    case 'gift':
+    case "gift":
       chatList!.push(data);
       break;
-    case 'social':
+    case "social":
       followCount.value = data.followCount;
       break;
-    case 'room':
+    case "room":
       memberCount.value = data.memberCount;
       totalUserCount.value = data.totalUserCount;
       rankList!.length = 0;
@@ -211,12 +247,15 @@ function handleChat(data: Mess) {
  */
 function renewPos() {
   if (!messListDom) {
-    messListDom = document.getElementById('mess-list');
+    messListDom = document.getElementById("mess-list");
   }
   // console.log(isStopScroll?.value);
   if (!isStopScroll?.value) {
     messListDom &&
-      messListDom.scrollTo({ top: messListDom.scrollHeight - messListDom.clientHeight, behavior: 'smooth' });
+      messListDom.scrollTo({
+        top: messListDom.scrollHeight - messListDom.clientHeight,
+        behavior: "smooth",
+      });
   }
 }
 

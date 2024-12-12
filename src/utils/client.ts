@@ -10,19 +10,21 @@ class Client {
   private socket;
 
   constructor(wsUrl: string) {
-    'undefined' != typeof WebSocket && ((this.socket = new WebSocket(wsUrl)), (this.socket.binaryType = 'arraybuffer'));
+    "undefined" != typeof WebSocket &&
+      ((this.socket = new WebSocket(wsUrl)),
+      (this.socket.binaryType = "arraybuffer"));
   }
   onError(cb: (e: Event) => void) {
-    this.socket?.addEventListener('error', cb);
+    this.socket?.addEventListener("error", cb);
   }
   onMessage(cb: (e: MessageEvent) => void) {
-    this.socket?.addEventListener('message', cb);
+    this.socket?.addEventListener("message", cb);
   }
   onOpen(cb: () => void) {
-    this.socket?.addEventListener('open', cb);
+    this.socket?.addEventListener("open", cb);
   }
   onClose(cb: (e: CloseEvent) => void) {
-    this.socket?.addEventListener('close', cb);
+    this.socket?.addEventListener("close", cb);
   }
   /**
    * 向服务端发送消息
@@ -57,12 +59,12 @@ export class DyClient {
 
   constructor() {
     this.client = undefined;
-    this.wsUrl = '';
+    this.wsUrl = "";
   }
 
   init(wsUrl: string) {
     if (!window.WebSocket) {
-      console.log('您的浏览器不支持WebSocket');
+      console.log("您的浏览器不支持WebSocket");
       return;
     }
     this.wsUrl = wsUrl;
@@ -80,7 +82,9 @@ export class DyClient {
       this.onClose
         ? this.onClose
         : (e: CloseEvent) => {
-            this.pingStarted && (console.log('socket close ......', e.type), (this.pingStarted = !1));
+            this.pingStarted &&
+              (console.log("socket close ......", e.type),
+              (this.pingStarted = !1));
             this.onOff && this.onOff(false);
           }
     );
@@ -89,7 +93,7 @@ export class DyClient {
         ? this.onError
         : (e: Event) => {
             this.pingStarted = !1;
-            console.error('[socket error]: ', e);
+            console.error("[socket error]: ", e);
             this.onOff && this.onOff(false);
           }
     );
@@ -98,20 +102,25 @@ export class DyClient {
         ? this.onMessage
         : (e: MessageEvent) => {
             if (this.client) {
-              const frame: proto.PushFrame = proto.PushFrame.deserializeBinary(e.data);
+              const frame: proto.PushFrame = proto.PushFrame.deserializeBinary(
+                e.data
+              );
               let headers = frame.getHeaderslistMap().map_;
               let gzipFlag = false;
               for (const t of Object.values<Entry>(headers)) {
-                if ('compress_type' === t.key && 'gzip' === t?.value) {
+                if ("compress_type" === t.key && "gzip" === t?.value) {
                   gzipFlag = true;
                 }
               }
-              let payload: Uint8Array = gzipFlag ? pako.inflate(frame.getPayload()) : frame.getPayload_asU8();
-              const res: proto.Response = proto.Response.deserializeBinary(payload);
+              let payload: Uint8Array = gzipFlag
+                ? pako.inflate(frame.getPayload())
+                : frame.getPayload_asU8();
+              const res: proto.Response =
+                proto.Response.deserializeBinary(payload);
               if (res.getNeedack()) {
                 let ext = res.getInternalext();
                 const sf = new proto.PushFrame();
-                sf.setPayloadtype('ack');
+                sf.setPayloadtype("ack");
                 sf.setPayload(
                   (function (e) {
                     const t = [];
@@ -121,7 +130,10 @@ export class DyClient {
                         ? t.push(e)
                         : e < 2048
                         ? (t.push(192 + (e >> 6)), t.push(128 + (63 & e)))
-                        : e < 65536 && (t.push(224 + (e >> 12)), t.push(128 + ((e >> 6) & 63)), t.push(128 + (63 & e)));
+                        : e < 65536 &&
+                          (t.push(224 + (e >> 12)),
+                          t.push(128 + ((e >> 6) & 63)),
+                          t.push(128 + (63 & e)));
                     }
                     return Uint8Array.from(t);
                   })(ext)
@@ -142,59 +154,13 @@ export class DyClient {
     const t = Math.max(1e4, Number(this.heartbeatDuration));
     if (this.client && this.client.ready() === 1) {
       const frame = new proto.PushFrame();
-      frame.setPayloadtype('hb');
+      frame.setPayloadtype("hb");
       this.client.send(frame.serializeBinary());
     }
     this.pingTimer = setTimeout(() => {
       this.pingStarted && this.ping();
     }, t);
   }
-}
-
-interface Mess {
-  id: number;
-  type: string | undefined;
-  content: string;
-  nickname: string;
-  /**
-   * 在线观众
-   */
-  memberCount: number;
-  /**
-   * 点赞数
-   */
-  likeCount: number;
-  /**
-   * 主播粉丝数
-   */
-  followCount: number;
-  /**
-   * 累计观看人数
-   */
-  totalUserCount: number;
-  rank: RankItem[];
-  gift: Gift;
-}
-
-interface Gift {
-  name: string;
-  // 礼物数量
-  count: number;
-  url: string;
-  desc: string;
-  // 单个价值-抖音币
-  diamondCount?: number;
-  // 可能为重复参数，大于0时为重复的
-  repeatEnd?: number;
-}
-
-/**
- * 送礼点赞榜
- */
-interface RankItem {
-  nickname: string;
-  avatar: string;
-  rank: number;
 }
 
 /**
@@ -207,70 +173,57 @@ export const handleMessage = function (message: proto.Message) {
   let chat: Mess = {
     id: 0,
     type: undefined,
-    nickname: '',
-    content: '',
+    nickname: "",
+    content: "",
     memberCount: 0,
     likeCount: 0,
     followCount: 0,
     totalUserCount: 0,
     rank: [],
     gift: {
-      name: '',
+      name: "",
       count: 0,
-      url: '',
-      desc: ''
-    }
+      url: "",
+      desc: "",
+    },
   };
   switch (method) {
     // 进入
-    case 'WebcastMemberMessage':
+    case "WebcastMemberMessage":
       data = proto.MemberMessage.deserializeBinary(message.getPayload());
       // membercount - 直播间人数， user.nickname
-      chat.type = 'member';
+      chat.type = "member";
       chat.nickname = data.getUser().getNickname();
-      chat.content = '来了';
+      chat.content = "来了";
       chat.memberCount = data.getMembercount();
       break;
     // 关注
-    case 'WebcastSocialMessage':
+    case "WebcastSocialMessage":
       data = proto.SocialMessage.deserializeBinary(message.getPayload());
-      chat.type = 'social';
+      chat.type = "social";
       chat.nickname = data.getUser().getNickname();
-      chat.content = '关注了主播';
+      chat.content = "关注了主播";
       chat.followCount = data.getFollowcount();
       break;
     // 聊天
-    case 'WebcastChatMessage':
+    case "WebcastChatMessage":
       data = proto.ChatMessage.deserializeBinary(message.getPayload());
-      chat.type = 'chat';
+      chat.type = "chat";
       chat.nickname = data.getUser().getNickname();
       chat.content = data.getContent();
       break;
     // 点赞
-    case 'WebcastLikeMessage':
+    case "WebcastLikeMessage":
       data = proto.LikeMessage.deserializeBinary(message.getPayload());
-      chat.type = 'like';
+      chat.type = "like";
       chat.nickname = data.getUser().getNickname();
-      chat.content = '为主播点赞了';
+      chat.content = "为主播点赞了";
       chat.likeCount = data.getTotal();
       break;
     // 礼物
-    case 'WebcastGiftMessage':
+    case "WebcastGiftMessage":
       data = proto.GiftMessage.deserializeBinary(message.getPayload());
-      chat.type = 'gift';
-      // 礼物信息
-      // console.log({
-      //   username: data.getUser().getNickname(),
-      //   msgId: data.getCommon().getMsgid(),
-      //   logId: data.getLogid(),
-      //   giftName: data.getGift().getName(),
-      //   giftId: data.getGiftid(),
-      //   repeatEnd: data.getRepeatend(),
-      //   isShowMsg: data.getCommon().getIsshowmsg(),
-      //   count: data.getRepeatcount(),
-      //   describe: data.getCommon().getDescribe(),
-      //   commonCreateTime: data.getCommon().getCreatetime()
-      // });
+      chat.type = "gift";
       chat.nickname = data.getUser().getNickname();
       chat.content = data.getCommon().getDescribe();
       chat.gift.name = data.getGift().getName();
@@ -281,10 +234,10 @@ export const handleMessage = function (message: proto.Message) {
       chat.gift.repeatEnd = data.getRepeatend();
       break;
     // 直播间统计
-    case 'WebcastRoomUserSeqMessage':
+    case "WebcastRoomUserSeqMessage":
       data = proto.RoomUserSeqMessage.deserializeBinary(message.getPayload());
-      chat.type = 'room';
-      chat.content = '';
+      chat.type = "room";
+      chat.content = "";
       chat.memberCount = data.getTotal();
       chat.totalUserCount = data.getTotaluser();
       let rank = data.getRanksList();
@@ -292,10 +245,13 @@ export const handleMessage = function (message: proto.Message) {
         let rankItem: RankItem = {
           nickname: item.getUser().getNickname(),
           avatar: item.getUser().getAvatarthumb().getUrllistList()[0],
-          rank: item.getRank()
+          rank: item.getRank(),
         };
         chat.rank.push(rankItem);
       }
+      break;
+    default:
+      chat.type = method;
       break;
   }
   chat.id = data?.getCommon().getMsgid();
