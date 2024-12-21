@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { DyClient, handleMessage } from '../utils/client';
 import { notification_minecraft } from '../utils/notification';
-import { getRoomInfoApi } from '@/api/commonApi';
+import { getRoomInfoApi } from '../api/commonApi';
 import { ref, inject, onMounted, type Ref } from 'vue';
 
 // 房间号

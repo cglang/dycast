@@ -27,10 +27,13 @@ export const sendMessage = function (uuid: string, content: string) {
 };
 
 export const chatMessage = function (uuid: string, nickname: string, content: string) {
-    // sendCommand(`/tellraw ${userName} {"text":"${content}","color":"gold"}`);
     sendCommand(uuid, `tellraw ${userName} [{"text":"${nickname}:","color":"green","bold":false,"italic":false,"underlined":false,"strikethrough":false,"obfuscated":false},{"text":"${content}","color":"white","bold":false,"italic":false,"underlined":false,"strikethrough":false,"obfuscated":false}]`);
 };
 
 export const sendTitle = function (uuid: string, content: string) {
     sendCommand(uuid, `title ${userName} title "${content}"`);
 };
+
+export const releaseFireworks = function(uuid:string){
+    sendCommand(uuid, `bingo TimelyDart`);
+}
